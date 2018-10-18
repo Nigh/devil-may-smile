@@ -2,21 +2,47 @@
 player = require("player")
 local bump = require 'bump'
 local world = bump.newWorld(25)	-- 64 ~ 70 工作异常
+
+local box_draw=function(self,x,y,w,h)
+	love.graphics.setColor(1,1,1,1)
+	love.graphics.rectangle("fill",x,y,w,h)
+end
+
+local ground_draw=function(self,x,y,w,h)
+	love.graphics.setColor(0.6,0.6,0.7,1)
+	love.graphics.rectangle("fill",x,y,w,h)
+end
+
+local devil_draw=function(self,x,y,w,h)
+	love.graphics.setColor(0.9,0.3,0.2,1)
+	love.graphics.rectangle("line",x,y,w,h)
+	love.graphics.rectangle("fill",x+(self.face+1)*0.25*self.w,y,self.w*0.5,self.w*0.5)
+end
+
 local ground = {
 	name="ground_tile",
-	x=-100,y=700,w=2000,h=5
+	x=-100,y=700,w=2000,h=50,
+	draw=ground_draw
 }
 local box1 = {
 	name="box1",
-	w=10,h=32
+	w=30,h=32,
+	draw=box_draw
 }
 local box2 = {
 	name="box2",
-	w=5,h=64
+	w=10,h=64,
+	draw=box_draw
 }
 local box3 = {
 	name="box3",
-	w=200,h=129
+	w=200,h=129,
+	draw=box_draw
+}
+local enemy = {
+	name="devil0",group="red",
+	w=15,h=40,face=-1,
+	draw=devil_draw
 }
 function love.load()
 	print("test")
@@ -28,15 +54,18 @@ function love.load()
 	waog(box1,400)
 	waog(box2,600)
 	waog(box3,900)
+	waog(enemy,760)
 end
 
 function love.update( dt )
 	if love.keyboard.isDown('a') then
-		player:run("left")
-	elseif love.keyboard.isDown('d') then
-		player:run("right")
-	else
+		player:faceto("left")
 		player:run()
+	elseif love.keyboard.isDown('d') then
+		player:faceto("right")
+		player:run()
+	else
+		player:stop()
 	end
 	player:update(dt)
 end
@@ -46,16 +75,18 @@ function love.draw( ... )
 	local tab,len = world:getItems()
 	for i=1,len do
 		if tab[i].name~="player" then
-			love.graphics.rectangle("fill",world:getRect(tab[i]))
+			tab[i]:draw(world:getRect(tab[i]))
 		end
 	end
-	-- love.graphics.rectangle("fill",ground.x,ground.y,ground.w,ground.h)
 	player:draw()
 end
 
 function love.keypressed( key, scancode, isrepeat )
 	if key == 'w' and not isrepeat then
 		player:jumpstart()
+	end
+	if key == 'j' and not isrepeat then
+		player:attack()
 	end
 end
 

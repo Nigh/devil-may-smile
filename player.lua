@@ -1,4 +1,6 @@
 
+
+local be = require("boxeffect")
 local player={}
 
 function player:init(world)
@@ -9,6 +11,7 @@ function player:init(world)
 	self.h = 36
 	self.vx = 0
 	self.vy = 0
+	self.face = 1	-- 1 for right, -1 for left
 	self.jumpcount = 0
 	self.jpt = 0	-- 大小跳时间阈值
 	self.state = "init"
@@ -26,8 +29,8 @@ function player:effectInit()
 	self.jumpeffect:setEmissionRate(400)
 	self.jumpeffect:setEmitterLifetime(.2)
 	self.jumpeffect:setColors(
-		1, .7, .5, 1, 
-		1, .4, .5, 0.2,
+		.5, .7, .5, 1, 
+		.5, .3, .5, 0.2,
 		1, 1, 1, 0
 	)
 	self.jumpeffect:setSizes(1,2,4)
@@ -41,9 +44,10 @@ function player:effectInit()
 end
 
 function player:jumpeffectAdd(x,y)
-	self.jumpeffect:reset()
-	self.jumpeffect:setPosition(x,y)
-	self.jumpeffect:start()
+	-- self.jumpeffect:reset()
+	-- self.jumpeffect:setPosition(x,y)
+	-- self.jumpeffect:start()
+	be:new(x-15,y,30,3,0.2)
 end
 
 function player:jumpstart()
@@ -69,27 +73,54 @@ function player:jumphigh()
 	self.jumpstate="jumphigh"
 end
 
-function player:run(dir)
+function player:faceto(dir)
 	if dir=="left" then
-		self.vx = -300
+		self.face = -1
 	elseif dir=="right" then
-		self.vx = 300
-	else
-		self.vx = 0
+		self.face = 1
 	end
 end
 
-function player:draw()
-	love.graphics.rectangle("line",self.x,self.y,self.w,self.h)
-	local mode = love.graphics.getBlendMode()
-	love.graphics.setBlendMode( "add" )
-	love.graphics.draw(self.jumpeffect,0,0)
-	love.graphics.setBlendMode( mode )
+function player:attack()
+	local atw = 36
+	local ax,ay,aw,ah = self.x+0.5*self.w-0.5*atw+0.5*self.face*(atw+self.w),self.y,atw,20
+	local items, len = self.world:queryRect(ax,ay,aw,ah,
+	function(i)
+		if i.group~="red" then
+			return false
+		else
+			return true
+		end
+	end)
+	be:new(ax,ay,aw,ah,0.3)
+	for _,v in ipairs(items) do
+		local x,y,w,h = self.world:getRect(v)
+		be:new(x,y,w,h,0.7)
+	end
 end
 
+function player:stop()
+	self.vx = 0
+end
+
+function player:run()
+	self.vx = 300 * self.face
+end
+
+function player:draw()
+	love.graphics.setColor(1,1,1,1)
+	love.graphics.rectangle("line",self.x,self.y,self.w-1,self.h-1)
+	love.graphics.rectangle("fill",self.x+(self.face+1)*0.25*self.w,self.y,self.w*0.5,self.w*0.5)
+	local mode = love.graphics.getBlendMode()
+	love.graphics.setBlendMode( "add" )
+	love.graphics.draw(self.jumpeffect,0,-10)
+	love.graphics.setBlendMode( mode )
+	be:draw()
+end
 
 height={0,0,0}
 function player:update(dt)
+	be:update(dt)
 	self.jumpeffect:moveTo(self.x+self.w*0.5,self.y+self.h)
 	self.jumpeffect:update(dt)
 	if self.jumpstate=="jumpstart" then
