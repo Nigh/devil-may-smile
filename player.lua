@@ -13,12 +13,11 @@ function player:init(world)
 	self.vy = 0
 	self.face = 1	-- 1 for right, -1 for left
 	self.jumpcount = 0
-	self.jpt = 0	-- 大小跳时间阈值
 	self.state = "init"
 	self.jumpstate = ""
 	self.world = world
 	self.world:add(self,self.x,self.y,self.w,self.h)
-
+	self.col_solve = col_solve
 	self:effectInit()
 end
 
@@ -58,13 +57,14 @@ function player:jumpstart()
 			self.jumpcount = self.jumpcount+1
 		end
 		self.jumpstate="jumpstart"
-		self.jpt = 0.14
+		self.driver = {type="force",ay=500,dur=0.3}
 	end
 end
 
 function player:jumpstop()
 	if self.jumpstate=="jumpstart" then
 		self.jumpstate = ""
+		self.driver = nil
 	end
 end
 
@@ -96,6 +96,7 @@ function player:attack()
 	for _,v in ipairs(items) do
 		local x,y,w,h = self.world:getRect(v)
 		be:new(x,y,w,h,0.7)
+		v.driver = {type="pulse",ay=-200,ax=self.face*100}
 	end
 end
 
@@ -123,17 +124,10 @@ function player:update(dt)
 	be:update(dt)
 	self.jumpeffect:moveTo(self.x+self.w*0.5,self.y+self.h)
 	self.jumpeffect:update(dt)
-	if self.jumpstate=="jumpstart" then
-		self.jpt = self.jpt-dt
-		if self.jpt<=0 then
-			self:jumphigh()
-		end
-	end
 	-- 掉落测试
 	local _, actualY = self.world:check(self, self.x, self.y+10)
 	self.onGround = self.y==actualY
 
-	local g = 0
 	if self.onGround == true then
 		if self.jumpstate~="jumpstart" then
 			self.vy = 0
@@ -143,19 +137,17 @@ function player:update(dt)
 	else
 		self.state = "air"
 	end
-	if self.jumpstate~="jumpstart" then
-		g = 1500
-	end
+
 	-- print("dt:"..dt.."\tvy:"..self.vy.."\tdh:"..self.vy*dt + 0.5*a*dt*dt)
-	player:move(self.vx * dt,self.vy*dt + 0.5*g*dt*dt)
-	self.vy = self.vy+g*dt
-	if self.vy>750 then self.vy=750 end
-	height[1] = height[2]
-	height[2] = height[3]
-	height[3] = self.y
-	if height[2]<height[1] and height[2]<height[3] then
-		print("jump:" .. 664-height[2])
-	end
+	-- player:move(self.vx * dt,self.vy*dt + 0.5*g*dt*dt)
+	-- self.vy = self.vy+g*dt
+	-- if self.vy>750 then self.vy=750 end
+	-- height[1] = height[2]
+	-- height[2] = height[3]
+	-- height[3] = self.y
+	-- if height[2]<height[1] and height[2]<height[3] then
+	-- 	print("jump:" .. 664-height[2])
+	-- end
 end
 
 local function col_solve(item, other)

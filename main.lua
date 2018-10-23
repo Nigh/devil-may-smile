@@ -1,6 +1,7 @@
 
 player = require("player")
 local bump = require 'bump'
+local dyna = require("dynamics")
 local world = bump.newWorld(25)	-- 64 ~ 70 工作异常
 
 local box_draw=function(self,x,y,w,h)
@@ -41,7 +42,7 @@ local box3 = {
 }
 local enemy = {
 	name="devil0",group="red",
-	w=15,h=40,face=-1,
+	w=15,h=40,face=-1,vx=0,vy=0,
 	draw=devil_draw
 }
 function love.load()
@@ -49,12 +50,19 @@ function love.load()
 	love.graphics.setBackgroundColor( 0x0a/0xff, 0x08/0xff, 0x06/0xff )
 	love.math.setRandomSeed( 6173420+love.timer.getTime( ) )
 	player:init(world)
+	dyna:link_bump(world)
 	world:add(ground,ground.x,ground.y,ground.w,ground.h)
-	waog=function(t,x)world:add(t,x,ground.y-t.h,t.w,t.h)end
+	waog=function(t,x)
+		world:add(t,x,ground.y-t.h,t.w,t.h)
+		t.x = x
+		t.y = ground.y-t.h
+	end
 	waog(box1,400)
 	waog(box2,600)
 	waog(box3,900)
 	waog(enemy,760)
+	dyna:add(player)
+	dyna:add(enemy)
 end
 
 function love.update( dt )
@@ -68,6 +76,7 @@ function love.update( dt )
 		player:stop()
 	end
 	player:update(dt)
+	dyna:update(dt)
 end
 
 function love.draw( ... )
@@ -82,7 +91,7 @@ function love.draw( ... )
 end
 
 function love.keypressed( key, scancode, isrepeat )
-	if key == 'w' and not isrepeat then
+	if key == 'k' and not isrepeat then
 		player:jumpstart()
 	end
 	if key == 'j' and not isrepeat then
@@ -91,7 +100,7 @@ function love.keypressed( key, scancode, isrepeat )
 end
 
 function love.keyreleased( key, scancode )
-	if key == 'w' then
+	if key == 'k' then
 		player:jumpstop()
 	end
 end
