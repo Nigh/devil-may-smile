@@ -6,7 +6,7 @@ local dynamics = {
     };
 
 -- 精度宽容度
-local small = 1e-06
+local _small = 1e-06
 -- 背景重力
 local dyna_g = 1500
 -- y轴限速
@@ -16,11 +16,11 @@ local gravity = {type="static",ay=dyna_g}
 
 dynamics.items={}
 
-local function notSmall(n)
-    if n<small and n>-small then
-        return false
-    else
+local function small(n)
+    if n<_small and n>-_small then
         return true
+    else
+        return false
     end
 end
 
@@ -56,6 +56,12 @@ function dynamics:update( dt )
                 v.dy = v.vy*dt + 0.5*v.driver.ay*dt*dt
                 v.vy = v.vy+v.driver.ay*dt
                 if v.vy>max_vy then v.vy = max_vy end
+            elseif v.driver.type == "velocity" then
+                v.driver.dur = v.driver.dur - dt
+                v.vx = v.driver.ax
+                v.vy = v.driver.ay
+                v.dx = v.vx*dt
+                v.dy = v.vy*dt
             elseif v.driver.type == "force" then
                 if v.driver.dur>dt then
                     v.driver.dur = v.driver.dur - dt
@@ -63,17 +69,17 @@ function dynamics:update( dt )
                     dt = v.driver.dur
                     v.driver.dur = 0
                 end
-                if notSmall(v.driver.ax) then
+                if not small(v.driver.ax) then
                     v.dx = v.vx*dt + 0.5*v.driver.ax*dt*dt
                     v.vx = v.vx+v.driver.ax*dt
-                elseif notSmall(v.driver.fx) then
+                elseif not small(v.driver.fx) then
                     v.dx = v.vx*dt + 0.5*v.driver.fx/v.mass*dt*dt
                     v.vx = v.vx+v.driver.fx/v.mass*dt
                 end
-                if notSmall(v.driver.ay) then
+                if not small(v.driver.ay) then
                     v.dy = v.vy*dt + 0.5*v.driver.ay*dt*dt
                     v.vy = v.vy+v.driver.ay*dt
-                elseif notSmall(v.driver.fy) then
+                elseif not small(v.driver.fy) then
                     v.dy = v.vy*dt + 0.5*v.driver.fy/v.mass*dt*dt
                     v.vy = v.vy+v.driver.fy/v.mass*dt
                 end
@@ -82,24 +88,24 @@ function dynamics:update( dt )
                     v.driver = nil
                 end
             elseif v.driver.type == "pulse" then
-                if notSmall(v.driver.ax) then
+                if not small(v.driver.ax) then
                     v.vx = v.vx+v.driver.ax
                     v.dx = v.vx*dt
-                elseif notSmall(v.driver.ix) then
+                elseif not small(v.driver.ix) then
                     v.vx = v.vx+v.driver.ix/v.mass
                     v.dx = v.vx*dt
                 end
-                if notSmall(v.driver.ay) then
+                if not small(v.driver.ay) then
                     v.vy = v.vy+v.driver.ay
                     v.dy = v.vy*dt
-                elseif notSmall(v.driver.iy) then
+                elseif not small(v.driver.iy) then
                     v.vy = v.vy+v.driver.iy/v.mass
                     v.dy = v.vy*dt
                 end
-                print(v.name)
-                print(v.driver.ay)
-                print(v.vy)
-                print(v.dy)
+                -- print(v.name)
+                -- print(v.driver.ay)
+                -- print(v.vy)
+                -- print(v.dy)
                 if v.vy>max_vy then v.vy = max_vy end
                 v.driver = nil
             end
@@ -110,10 +116,10 @@ function dynamics:update( dt )
         local v = self.items[i]
         local col_solve = v.col_solve or nil
         local actualX, actualY, cols, len = self.world:move(v, v.x+v.dx,v.y+v.dy,col_solve)
-        if not notSmall(v.y-actualY) then v.vy = 0 end
-        if not notSmall(v.x-actualX) then v.vx = -v.vx end
+        if small(v.y-actualY) then v.vy = 0 end
+        if small(v.x-actualX) then v.vx = -v.vx*0.6 end
         v.x, v.y = actualX, actualY
-        if notSmall(v.vx) then v.vx = v.vx - v.vx*0.8*dt end
+        -- if not small(v.vx) then v.vx = v.vx - v.vx*0.7*dt end
     end
 end
 
